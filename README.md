@@ -10,13 +10,25 @@ Project Templates for Easy & Quick starting Haskell programming.
   -p "module:Project.Top.Module" ^
   -p "module-path:Project/Top/Module" ^
   -p "paths-module:Paths_package_name"
+
+  (on Windows)
+
+> stack new package-name github:phoityne/hs-project \
+  -p "module:Project.Top.Module" \
+  -p "module-path:Project/Top/Module" \
+  -p "paths-module:Paths_package_name"
+
+  (on Linux)
+
 >
 > cd package-name
 >
 > stack test
  . . .
-1 example, 0 failures
+2 examples, 1 failure
+package-name-0.0.1.0: Test suite package-name-test failed
 Completed 2 action(s).
+ . . .
 >
 ```
 
