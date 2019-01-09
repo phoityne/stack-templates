@@ -36,5 +36,5 @@ Completed 2 action(s).
 |Template Engine|[stache](http://hackage.haskell.org/package/stache)|
 |Test Framework|[hspec](http://hackage.haskell.org/package/hspec)|
 |Data access|[lens](http://hackage.haskell.org/package/lens)|
-|App Context|[extensible](https://hackage.haskell.org/package/extensible) (State MVar, Reader)|
+|App Context|ExceptT, StateT|
 
