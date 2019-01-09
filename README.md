@@ -6,8 +6,10 @@ Project Templates for Easy & Quick starting Haskell programming.
 ## Creating New Project
 
 ```
-> stack new package-name https://raw.githubusercontent.com/phoityne/stack-templates/master/hs-project.hsfiles -p "module:Project.Top.Module" -p "module-path:Project/Top/Module" -p "paths-module:Paths_package_name"
- . . .
+> stack new package-name github:phoityne/hs-project ^
+  -p "module:Project.Top.Module" ^
+  -p "module-path:Project/Top/Module" ^
+  -p "paths-module:Paths_package_name"
 >
 > cd package-name
 >

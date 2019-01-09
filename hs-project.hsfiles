@@ -118,6 +118,7 @@ tests:
     - base
     - hspec
     - bytestring
+    - data-default
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
