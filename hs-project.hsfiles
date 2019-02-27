@@ -6,7 +6,7 @@ description: Please see README.md
 category: Development
 author: Author name here
 maintainer: example@example.com
-copyright: 2017 Author Here
+copyright: 2019 Author Here
 license: BSD3
 homepage: http://github.com/githubuser/{{name}}#readme
 
@@ -16,6 +16,9 @@ extra-source-files:
 
 ghc-options:
 - -Wall
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
 - -fno-warn-unused-do-bind
 - -fno-warn-name-shadowing
 - -fno-warn-orphans
@@ -65,6 +68,26 @@ default-extensions:
 - TypeSynonymInstances
 - ViewPatterns
 
+dependencies:
+- base >=4.7 && <5
+- mtl
+- MissingH
+- conduit
+- conduit-extra
+- resourcet
+- lens
+- aeson
+- stache
+- text
+- bytestring
+- safe-exceptions
+- data-default
+- hslogger
+- safe
+- yaml
+- cmdargs
+- process
+
 library:
   source-dirs: src
   exposed-modules:
@@ -75,50 +98,22 @@ library:
   - {{module}}.Type
   - {{module}}.Utility
   - {{module}}.TH.Utility
-  dependencies:
-  - base >=4.7 && <5
-  - mtl
-  - hslogger
-  - text
-  - bytestring
-  - MissingH
-  - conduit
-  - conduit-extra
-  - resourcet
-  - lens
-  - safe-exceptions
-  - aeson
-  - stache
-  - data-default
 
 executables:
   {{name}}:
     main: Main.hs
     source-dirs: app
     dependencies:
-    - base
     - {{name}}
-    - hslogger
-    - MissingH
-    - safe
-    - lens
-    - safe-exceptions
-    - aeson
-    - yaml
-    - bytestring
-    - text
-    - cmdargs
 
 tests:
   {{name}}-test:
     main: Spec.hs
     source-dirs: test
     dependencies:
-    - {{name}}
-    - base
     - hspec
-    - bytestring
-    - data-default
+    - {{name}}
+
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
@@ -191,6 +186,72 @@ Summary of {{name}}.
 {-# START_FILE test/Spec.hs #-}
 {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
+{-# START_FILE test/Spec/Utility.hs #-}
+
+module Spec.Utility where
+
+import qualified System.IO as S
+import qualified System.Process as S
+import qualified Data.ByteString.Lazy as B
+import Control.Concurrent.MVar
+import qualified System.Log.Logger as L
+import qualified System.Log.Formatter as L
+import qualified System.Log.Handler as LH
+import qualified System.Log.Handler.Simple as LHS
+
+import {{module}}.Constant
+import {{module}}.Utility
+
+
+-- |
+--  setup logger
+-- 
+setUpLogger :: L.Priority -> IO ()
+setUpLogger p = do
+  logHandle <- LHS.streamHandler S.stdout p
+  
+  let logFormat  = L.tfLogFormatter _LOG_FORMAT_DATE _LOG_FORMAT
+      logHandler = LH.setFormatter logHandle logFormat
+
+  L.updateGlobalLogger L.rootLoggerName $ L.setHandlers ([] :: [LHS.GenericHandler S.Handle])
+  L.updateGlobalLogger _LOG_NAME $ L.setHandlers [logHandler]
+  L.updateGlobalLogger _LOG_NAME $ L.setLevel p
+
+
+-- |
+--  setup logger
+-- 
+tearDownLogger :: IO ()
+tearDownLogger = do
+  L.removeAllHandlers
+
+
+-- |
+--
+createPipe :: IO (S.Handle, S.Handle)
+createPipe = do
+  (rHdl, wHdl) <- S.createPipe
+
+  S.hSetBuffering rHdl S.NoBuffering
+  S.hSetEncoding rHdl S.utf8
+  S.hSetNewlineMode rHdl $ S.NewlineMode S.CRLF S.LF
+
+  S.hSetBuffering wHdl S.NoBuffering
+  S.hSetEncoding wHdl S.utf8
+  S.hSetNewlineMode wHdl $ S.NewlineMode S.CRLF S.LF
+
+  return (rHdl, wHdl) 
+
+
+-- |
+--
+read2buf :: S.Handle -> MVar B.ByteString -> IO ()
+read2buf hdl bufMVar = do
+  s <- B.hGet hdl 1
+  buf <- takeMVar bufMVar
+  putMVar bufMVar $ buf `B.append` s
+  read2buf hdl bufMVar
+
 {-# START_FILE test/{{module-path}}/ControlSpec.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -198,26 +259,60 @@ module {{module}}.ControlSpec where
 
 import Test.Hspec
 import Data.Default
+import qualified System.Log.Logger as L
 
+import Spec.Utility
+
+import {{module}}.Constant
+import {{module}}.Type
 import {{module}}.Control
 
 -- |
 --
 spec :: Spec
-spec = 
-  describe "run" $ do
-    context "when default args" $ 
-      it "should be 1" $ do
-        let arg  = def
-            conf = def
-        res <- run arg conf
-        res `shouldBe` 1
+spec = do
+  runIO $ putStrLn "Start Spec."
+  beforeAll_ beforeAll'
+    . afterAll_ afterAll'
+    . before_ before'
+    . after_  after'
+    $ spec'
 
-    context "when args" $ 
-      it "should throw exception" $ do
-        let arg  = def
-            conf = def
-        run arg conf `shouldThrow` anyException
+  where
+    beforeAll' :: IO ()
+    beforeAll' = do
+      setUpLogger L.DEBUG
+      return ()
+
+    afterAll' ::IO ()
+    afterAll' = do
+      tearDownLogger
+      return ()
+      
+    before' :: IO ()
+    before' = do
+      return ()
+
+    after' :: IO ()
+    after' = do
+      return ()
+
+    spec' :: Spec
+    spec' = do
+      describe "run" $ do
+        context "when default args" $ 
+          it "should be 1" $ do
+            let arg  = def
+                conf = def
+            res <- run arg conf
+            res `shouldBe` 1
+
+        context "when args" $ 
+          it "should throw exception" $ do
+            let arg  = def
+                conf = def
+            run arg conf `shouldThrow` anyException
+
 
 {-# START_FILE src/{{module-path}}/TH/Utility.hs #-}
 
